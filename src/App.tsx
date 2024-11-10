@@ -1,10 +1,10 @@
 import React from 'react';
-import { BrowserRouter, Routes, Route } from 'react-router-dom';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { Security, LoginCallback } from '@okta/okta-react';
-import { OktaAuth } from '@okta/okta-auth-js';
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { QueryClient, QueryClientProvider } from 'react-query';
 
+import { AuthProvider } from './contexts/AuthContext';
 import Layout from './components/Layout';
+import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
 import IdeaSubmission from './pages/IdeaSubmission';
 import IdeaDetails from './pages/IdeaDetails';
@@ -12,51 +12,75 @@ import ReviewDashboard from './pages/ReviewDashboard';
 import AdminPanel from './pages/AdminPanel';
 import ProtectedRoute from './components/ProtectedRoute';
 
-const oktaAuth = new OktaAuth({
-  issuer: import.meta.env.VITE_OKTA_ISSUER,
-  clientId: import.meta.env.VITE_OKTA_CLIENT_ID,
-  redirectUri: window.location.origin + '/login/callback'
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      retry: 1,
+      refetchOnWindowFocus: false,
+    },
+  },
 });
 
-const queryClient = new QueryClient();
+function AppRoutes() {
+  return (
+    <Routes>
+      <Route path="/login" element={<Login />} />
+      
+      <Route path="/" element={<Layout />}>
+        <Route index element={<Navigate to="/dashboard" replace />} />
+        <Route
+          path="dashboard"
+          element={
+            <ProtectedRoute>
+              <Dashboard />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="submit"
+          element={
+            <ProtectedRoute>
+              <IdeaSubmission />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="ideas/:id"
+          element={
+            <ProtectedRoute>
+              <IdeaDetails />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="review"
+          element={
+            <ProtectedRoute allowedRoles={['REVIEWER', 'ADMIN']}>
+              <ReviewDashboard />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="admin"
+          element={
+            <ProtectedRoute allowedRoles={['ADMIN']}>
+              <AdminPanel />
+            </ProtectedRoute>
+          }
+        />
+      </Route>
+    </Routes>
+  );
+}
 
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
-      <BrowserRouter>
-        <Security oktaAuth={oktaAuth}>
-          <Routes>
-            <Route path="/login/callback" element={<LoginCallback />} />
-            <Route path="/" element={<Layout />}>
-              <Route index element={
-                <ProtectedRoute>
-                  <Dashboard />
-                </ProtectedRoute>
-              } />
-              <Route path="submit" element={
-                <ProtectedRoute>
-                  <IdeaSubmission />
-                </ProtectedRoute>
-              } />
-              <Route path="ideas/:id" element={
-                <ProtectedRoute>
-                  <IdeaDetails />
-                </ProtectedRoute>
-              } />
-              <Route path="review" element={
-                <ProtectedRoute allowedRoles={['REVIEWER', 'ADMIN']}>
-                  <ReviewDashboard />
-                </ProtectedRoute>
-              } />
-              <Route path="admin" element={
-                <ProtectedRoute allowedRoles={['ADMIN']}>
-                  <AdminPanel />
-                </ProtectedRoute>
-              } />
-            </Route>
-          </Routes>
-        </Security>
-      </BrowserRouter>
+      <AuthProvider>
+        <BrowserRouter>
+          <AppRoutes />
+        </BrowserRouter>
+      </AuthProvider>
     </QueryClientProvider>
   );
 }

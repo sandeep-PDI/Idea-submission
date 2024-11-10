@@ -1,115 +1,107 @@
 import React from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery } from 'react-query';
+import { SearchIcon, AlertCircleIcon } from 'lucide-react';
 import { Link } from 'react-router-dom';
-import { 
-  LightbulbIcon, 
-  CheckCircleIcon, 
-  XCircleIcon,
-  ClockIcon,
-  ChevronRightIcon
-} from 'lucide-react';
-import { fetchUserIdeas } from '../api/ideas';
-import { Idea, IdeaStatus } from '../types';
-
-const statusColors: Record<IdeaStatus, string> = {
-  DRAFT: 'bg-gray-100 text-gray-800',
-  SUBMITTED: 'bg-blue-100 text-blue-800',
-  FLR: 'bg-yellow-100 text-yellow-800',
-  SLR: 'bg-purple-100 text-purple-800',
-  PF: 'bg-orange-100 text-orange-800',
-  PATENTED: 'bg-green-100 text-green-800',
-  REJECTED: 'bg-red-100 text-red-800'
-};
-
-const statusIcons: Record<IdeaStatus, React.ReactNode> = {
-  DRAFT: <ClockIcon className="h-5 w-5" />,
-  SUBMITTED: <ClockIcon className="h-5 w-5" />,
-  FLR: <LightbulbIcon className="h-5 w-5" />,
-  SLR: <LightbulbIcon className="h-5 w-5" />,
-  PF: <LightbulbIcon className="h-5 w-5" />,
-  PATENTED: <CheckCircleIcon className="h-5 w-5" />,
-  REJECTED: <XCircleIcon className="h-5 w-5" />
-};
+import IdeaCard from '../components/IdeaCard';
+import { ideaService } from '../services/api';
+import type { Idea } from '../types';
 
 function Dashboard() {
-  const { data: ideas, isLoading } = useQuery({
-    queryKey: ['userIdeas'],
-    queryFn: fetchUserIdeas
-  });
+  const [searchTerm, setSearchTerm] = React.useState('');
+  const { data: ideas = [], isLoading, error } = useQuery<Idea[]>(
+    'ideas',
+    ideaService.getAll,
+    {
+      retry: 2,
+      refetchOnWindowFocus: false,
+    }
+  );
 
-  if (isLoading) {
+  const filteredIdeas = React.useMemo(() => {
+    if (!ideas) return [];
+    return ideas
+    // return ideas.filter(
+    //   (idea) =>
+    //     // idea.title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    //     // idea.description?.toLowerCase().includes(searchTerm.toLowerCase())
+    // );
+  }, [ideas, searchTerm]);
+
+  if (error) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div>
+      <div className="min-h-[50vh] flex items-center justify-center">
+        <div className="text-center p-8 max-w-md">
+          <AlertCircleIcon className="h-12 w-12 text-red-500 mx-auto mb-4" />
+          <h2 className="text-2xl font-bold text-gray-900 mb-2">Error Loading Ideas</h2>
+          <p className="text-gray-600 mb-4">{(error as Error).message}</p>
+          <button
+            onClick={() => window.location.reload()}
+            className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+          >
+            Try Again
+          </button>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <h1 className="text-2xl font-bold text-gray-900">My Ideas Dashboard</h1>
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div className="flex justify-between items-center mb-8">
+        <h1 className="text-3xl font-bold text-gray-900">My Ideas</h1>
         <Link
           to="/submit"
-          className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700"
+          className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
         >
-          <LightbulbIcon className="h-5 w-5 mr-2" />
           Submit New Idea
         </Link>
       </div>
 
-      <div className="bg-white shadow overflow-hidden sm:rounded-md">
-        <ul className="divide-y divide-gray-200">
-          {ideas?.map((idea: Idea) => (
-            <li key={idea.id}>
-              <Link to={`/ideas/${idea.id}`} className="block hover:bg-gray-50">
-                <div className="px-4 py-4 sm:px-6">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center space-x-3">
-                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${statusColors[idea.status]}`}>
-                        {statusIcons[idea.status]}
-                        <span className="ml-1">{idea.status}</span>
-                      </span>
-                      <p className="text-sm font-medium text-indigo-600 truncate">
-                        {idea.title}
-                      </p>
-                    </div>
-                    <div className="flex items-center">
-                      {idea.rewards && (
-                        <div className="mr-4 flex items-center text-sm text-gray-500">
-                          <span className="font-medium text-green-600">
-                            ${(idea.rewards.flrAmount || 0) + (idea.rewards.slrAmount || 0)}
-                          </span>
-                        </div>
-                      )}
-                      <ChevronRightIcon className="h-5 w-5 text-gray-400" />
-                    </div>
-                  </div>
-                  <div className="mt-2">
-                    <p className="text-sm text-gray-500 line-clamp-2">
-                      {idea.description}
-                    </p>
-                  </div>
-                  <div className="mt-2 sm:flex sm:justify-between">
-                    <div className="sm:flex">
-                      <p className="flex items-center text-sm text-gray-500">
-                        <span>Submitted on {new Date(idea.createdAt).toLocaleDateString()}</span>
-                      </p>
-                    </div>
-                    {idea.coApplicants.length > 0 && (
-                      <div className="mt-2 flex items-center text-sm text-gray-500 sm:mt-0">
-                        <p>
-                          {idea.coApplicants.length} co-applicant{idea.coApplicants.length > 1 ? 's' : ''}
-                        </p>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              </Link>
-            </li>
-          ))}
-        </ul>
+      <div className="mb-6">
+        <div className="relative">
+          <SearchIcon className="h-5 w-5 text-gray-400 absolute left-3 top-1/2 transform -translate-y-1/2" />
+          <input
+            type="text"
+            placeholder="Search ideas..."
+            className="pl-10 pr-4 py-2 w-full border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500"
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+          />
+        </div>
       </div>
+
+      {isLoading ? (
+        <div className="min-h-[50vh] flex items-center justify-center">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mx-auto"></div>
+            <p className="mt-4 text-gray-600">Loading ideas...</p>
+          </div>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {filteredIdeas.length > 0 ? (
+            filteredIdeas.map((idea) => (
+              <IdeaCard key={idea.id} idea={idea} />
+            ))
+          ) : (
+            <div className="col-span-full min-h-[30vh] flex items-center justify-center">
+              <div className="text-center">
+                <p className="text-gray-600 mb-4">
+                  {searchTerm
+                    ? 'No ideas found matching your search criteria.'
+                    : 'No ideas found. Start by submitting a new idea!'}
+                </p>
+                <Link
+                  to="/submit"
+                  className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                >
+                  Submit New Idea
+                </Link>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }

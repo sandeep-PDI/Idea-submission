@@ -1,0 +1,58 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = "file:./dev.db"
+}
+
+model User {
+  id             String   @id @default(uuid())
+  email          String   @unique
+  name           String
+  role           String   // APPLICANT, REVIEWER, ADMIN
+  department     String
+  lineOfBusiness String
+  ideas          Idea[]   @relation("SubmittedIdeas")
+  reviews        Review[]
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+}
+
+model Idea {
+  id             String       @id @default(uuid())
+  title          String
+  description    String
+  expectedImpact String
+  status         String       // DRAFT, SUBMITTED, FLR, SLR, PF, PATENTED, REJECTED
+  submittedBy    String
+  submitter      User         @relation("SubmittedIdeas", fields: [submittedBy], references: [id])
+  coApplicants   String[]
+  lineOfBusiness String
+  attachments    Attachment[]
+  reviews        Review[]
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+}
+
+model Review {
+  id        String   @id @default(uuid())
+  ideaId    String
+  idea      Idea     @relation(fields: [ideaId], references: [id])
+  reviewerId String
+  reviewer  User     @relation(fields: [reviewerId], references: [id])
+  stage     String   // FLR, SLR, PF
+  status    String   // APPROVED, REJECTED, PENDING
+  comments  String
+  createdAt DateTime @default(now())
+}
+
+model Attachment {
+  id        String   @id @default(uuid())
+  ideaId    String
+  idea      Idea     @relation(fields: [ideaId], references: [id])
+  fileName  String
+  fileUrl   String
+  createdAt DateTime @default(now())
+}
