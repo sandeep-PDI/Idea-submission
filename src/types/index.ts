@@ -1,6 +1,6 @@
-export type IdeaStatus = 'DRAFT' | 'SUBMITTED' | 'FLR' | 'SLR' | 'PF' | 'PATENTED' | 'REJECTED';
-
 export type UserRole = 'APPLICANT' | 'REVIEWER' | 'ADMIN';
+
+export type IdeaStatus = 'DRAFT' | 'SUBMITTED' | 'FLR' | 'SLR' | 'PF' | 'PATENTED' | 'REJECTED';
 
 export interface User {
   id: string;
@@ -9,6 +9,7 @@ export interface User {
   role: UserRole;
   department: string;
   lineOfBusiness: string;
+  password: string;
 }
 
 export interface Idea {
@@ -17,17 +18,20 @@ export interface Idea {
   description: string;
   expectedImpact: string;
   status: IdeaStatus;
-  applicantId: string;
+  submittedBy: string;
   coApplicants: string[];
-  lineOfBusiness: string;
   createdAt: string;
   updatedAt: string;
-  currentReviewerId?: string;
-  attachments?: string[];
-  rewards?: {
-    flrAmount?: number;
-    slrAmount?: number;
-  };
+  attachments: Attachment[];
+  reviews: Review[];
+  lineOfBusiness: string;
+}
+
+export interface Attachment {
+  id: string;
+  fileName: string;
+  fileUrl: string;
+  uploadedAt: string;
 }
 
 export interface Review {
@@ -35,7 +39,7 @@ export interface Review {
   ideaId: string;
   reviewerId: string;
   stage: 'FLR' | 'SLR' | 'PF';
-  status: 'PENDING' | 'APPROVED' | 'REJECTED';
+  status: 'APPROVED' | 'REJECTED' | 'PENDING';
   comments: string;
   createdAt: string;
 }

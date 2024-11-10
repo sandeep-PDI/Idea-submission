@@ -1,18 +1,22 @@
 import React from 'react';
-import { Outlet, Link, useNavigate } from 'react-router-dom';
-import { useOktaAuth } from '@okta/okta-react';
-import { LightbulbIcon, ClipboardListIcon, ShieldIcon, LogOutIcon } from 'lucide-react';
+import { Outlet, Link, useLocation, useNavigate } from 'react-router-dom';
+import { LightbulbIcon, LogOutIcon } from 'lucide-react';
+import { useAuth } from '../contexts/AuthContext';
+import NotificationBell from './NotificationBell';
 
 function Layout() {
-  const { oktaAuth, authState } = useOktaAuth();
+  const { user, logout } = useAuth();
+  const location = useLocation();
   const navigate = useNavigate();
 
-  if (!authState) return null;
-
-  const handleLogout = async () => {
-    await oktaAuth.signOut();
-    navigate('/');
+  const handleLogout = () => {
+    logout();
+    navigate('/login');
   };
+
+  if (!user) {
+    return null;
+  }
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -24,52 +28,41 @@ function Layout() {
                 <LightbulbIcon className="h-8 w-8" />
                 <span className="font-bold text-xl">PDI Ideas</span>
               </Link>
-              <div className="ml-10 flex items-baseline space-x-4">
-                <Link
-                  to="/submit"
-                  className="px-3 py-2 rounded-md text-sm font-medium hover:bg-indigo-500"
-                >
-                  Submit Idea
-                </Link>
-                {authState.isAuthenticated && (
-                  <>
-                    <Link
-                      to="/review"
-                      className="px-3 py-2 rounded-md text-sm font-medium hover:bg-indigo-500"
-                    >
-                      <ClipboardListIcon className="inline-block h-4 w-4 mr-1" />
-                      Review
-                    </Link>
-                    {authState.idToken?.claims.groups?.includes('admin') && (
-                      <Link
-                        to="/admin"
-                        className="px-3 py-2 rounded-md text-sm font-medium hover:bg-indigo-500"
-                      >
-                        <ShieldIcon className="inline-block h-4 w-4 mr-1" />
-                        Admin
-                      </Link>
-                    )}
-                  </>
-                )}
+              <div className="hidden md:block ml-10">
+                <div className="flex items-baseline space-x-4">
+                  <NavLink to="/dashboard" current={location.pathname === '/dashboard'}>
+                    Dashboard
+                  </NavLink>
+                  <NavLink to="/submit" current={location.pathname === '/submit'}>
+                    Submit Idea
+                  </NavLink>
+                  {(user.role === 'REVIEWER' || user.role === 'ADMIN') && (
+                    <NavLink to="/review" current={location.pathname === '/review'}>
+                      Review Ideas
+                    </NavLink>
+                  )}
+                  {user.role === 'ADMIN' && (
+                    <NavLink to="/admin" current={location.pathname === '/admin'}>
+                      Admin Panel
+                    </NavLink>
+                  )}
+                </div>
               </div>
             </div>
-            <div className="flex items-center">
-              {authState.isAuthenticated ? (
+            <div className="flex items-center space-x-4">
+              <NotificationBell />
+              <div className="flex items-center">
+                <span className="text-sm mr-4">
+                  {user.name} ({user.department})
+                </span>
                 <button
                   onClick={handleLogout}
-                  className="flex items-center px-3 py-2 rounded-md text-sm font-medium hover:bg-indigo-500"
+                  className="flex items-center space-x-2 px-4 py-2 rounded-md hover:bg-indigo-700 transition-colors"
                 >
-                  <LogOutIcon className="h-4 w-4 mr-1" />
-                  Logout
+                  <LogOutIcon className="h-5 w-5" />
+                  <span>Logout</span>
                 </button>
-              ) : (
-                <Link
-                  to="/login"
-                  className="px-3 py-2 rounded-md text-sm font-medium hover:bg-indigo-500"
-                >
-                  Login
-                </Link>
-              )}
+              </div>
             </div>
           </div>
         </div>
@@ -81,12 +74,27 @@ function Layout() {
 
       <footer className="bg-gray-800 text-white py-8 mt-auto">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <p className="text-center text-gray-400">
-            © {new Date().getFullYear()} PDI Technologies. All rights reserved.
-          </p>
+          <div className="text-center">
+            <p>© {new Date().getFullYear()} PDI Technologies. All rights reserved.</p>
+          </div>
         </div>
       </footer>
     </div>
+  );
+}
+
+function NavLink({ to, children, current }: { to: string; children: React.ReactNode; current: boolean }) {
+  return (
+    <Link
+      to={to}
+      className={`px-3 py-2 rounded-md text-sm font-medium ${
+        current
+          ? 'bg-indigo-700 text-white'
+          : 'text-indigo-100 hover:bg-indigo-500 hover:text-white transition-colors'
+      }`}
+    >
+      {children}
+    </Link>
   );
 }
 
