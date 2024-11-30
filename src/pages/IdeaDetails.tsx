@@ -5,17 +5,22 @@ import { format } from 'date-fns';
 import { FileIcon, UserIcon, MessageSquareIcon, CheckCircleIcon, XCircleIcon } from 'lucide-react';
 import type { Idea, Review } from '../types';
 import ReviewModal from '../components/ReviewModal';
+import {ideaService} from '../services/api';
+import { useAuth } from'../contexts/AuthContext';
 
 function IdeaDetails() {
   const { id } = useParams();
+  const { user } = useAuth();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [isReviewModalOpen, setIsReviewModalOpen] = React.useState(false);
 
   const { data: idea, isLoading } = useQuery<Idea>(['idea', id], async () => {
-    const response = await fetch(`/api/ideas/${id}`);
-    if (!response.ok) throw new Error('Failed to fetch idea');
-    return response.json();
+    if (!id) throw new Error('Idea ID is undefined');
+    const response = await ideaService.getById(id);
+    console.log(response); // Check what is returned
+    if (!response) throw new Error('Failed to fetch idea');
+    return response;
   });
 
   const updateStatusMutation = useMutation(
@@ -76,7 +81,7 @@ function IdeaDetails() {
 
             <div>
               <h2 className="text-xl font-semibold text-gray-900 mb-2">Expected Impact</h2>
-              <p className="text-gray-700 whitespace-pre-wrap">{idea.expectedImpact}</p>
+              <p className="text-gray-700 whitespace-pre-wrap">{idea.expectedimpact}</p>
             </div>
 
             <div className="border-t border-gray-200 pt-6">
@@ -85,33 +90,38 @@ function IdeaDetails() {
                 <div className="flex items-center">
                   <UserIcon className="h-5 w-5 text-gray-400 mr-2" />
                   <span className="text-gray-900 font-medium">Submitted by:</span>
-                  <span className="ml-2 text-gray-700">{idea.submittedBy}</span>
+                  <span className="ml-2 text-gray-700">{idea.User.email}</span>
                 </div>
-                {idea.coApplicants.length > 0 && (
+                {idea.CoApplicant.length > 0 && (
                   <div className="flex items-center">
                     <span className="text-gray-900 font-medium">Co-applicants:</span>
                     <span className="ml-2 text-gray-700">
-                      {idea.coApplicants.join(', ')}
+                    {idea.CoApplicant.map((coApplicant, index) => (
+                      <span key={coApplicant.id}>
+                        {coApplicant.coapplicantname}
+                        {index < idea.CoApplicant.length - 1 && ", "}
+                      </span>
+                    ))}
                     </span>
                   </div>
                 )}
               </div>
             </div>
 
-            {idea.attachments.length > 0 && (
+            {idea.Attachment.length > 0 && (
               <div className="border-t border-gray-200 pt-6">
                 <h2 className="text-xl font-semibold text-gray-900 mb-4">Attachments</h2>
                 <div className="grid grid-cols-1 gap-4">
-                  {idea.attachments.map((attachment) => (
+                  {idea.Attachment.map((attachment) => (
                     <a
                       key={attachment.id}
-                      href={attachment.fileUrl}
+                      href={attachment.fileurl}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="flex items-center p-4 border border-gray-200 rounded-lg hover:bg-gray-50"
                     >
                       <FileIcon className="h-5 w-5 text-gray-400 mr-3" />
-                      <span className="text-gray-700">{attachment.fileName}</span>
+                      <span className="text-gray-700">{attachment.filename}</span>
                     </a>
                   ))}
                 </div>
@@ -120,9 +130,9 @@ function IdeaDetails() {
 
             <div className="border-t border-gray-200 pt-6">
               <h2 className="text-xl font-semibold text-gray-900 mb-4">Reviews</h2>
-              {idea.reviews.length > 0 ? (
+              {idea.Review.length > 0 ? (
                 <div className="space-y-4">
-                  {idea.reviews.map((review) => (
+                  {idea.Review.map((review) => (
                     <div
                       key={review.id}
                       className="bg-gray-50 p-4 rounded-lg"
@@ -143,7 +153,7 @@ function IdeaDetails() {
                       </div>
                       <p className="text-gray-700 whitespace-pre-wrap">{review.comments}</p>
                       <div className="mt-2 text-sm text-gray-500">
-                        {format(new Date(review.createdAt), 'MMM d, yyyy')}
+                        {format(new Date(review.createdat), 'MMM d, yyyy')}
                       </div>
                     </div>
                   ))}
@@ -151,14 +161,14 @@ function IdeaDetails() {
               ) : (
                 <p className="text-gray-500">No reviews yet.</p>
               )}
-              
-              <button
+              { user && user.user.id !== idea.User.id ? (
+              <button 
                 onClick={() => setIsReviewModalOpen(true)}
                 className="mt-4 inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
               >
                 <MessageSquareIcon className="h-5 w-5 mr-2" />
                 Add Review
-              </button>
+              </button>) : null}
             </div>
           </div>
         </div>
@@ -166,6 +176,7 @@ function IdeaDetails() {
 
       {isReviewModalOpen && (
         <ReviewModal
+        
           ideaId={idea.id}
           onClose={() => setIsReviewModalOpen(false)}
           onSubmit={() => {

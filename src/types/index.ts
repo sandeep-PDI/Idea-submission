@@ -9,7 +9,8 @@ export interface User {
   role: UserRole;
   department: string;
   lineOfBusiness: string;
-  password: string;
+  createdat: string;
+  updatedat: string;
 }
 
 export interface Idea {

@@ -36,12 +36,12 @@ function Layout() {
                   <NavLink to="/submit" current={location.pathname === '/submit'}>
                     Submit Idea
                   </NavLink>
-                  {(user.role === 'REVIEWER' || user.role === 'ADMIN') && (
+                  {(user.user.role === 'REVIEWER' || user.user.role === 'ADMIN') && (
                     <NavLink to="/review" current={location.pathname === '/review'}>
                       Review Ideas
                     </NavLink>
                   )}
-                  {user.role === 'ADMIN' && (
+                  {user.user.role === 'ADMIN' && (
                     <NavLink to="/admin" current={location.pathname === '/admin'}>
                       Admin Panel
                     </NavLink>

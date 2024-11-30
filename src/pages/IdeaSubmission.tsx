@@ -1,49 +1,59 @@
-import React from 'react';
-import { useForm } from 'react-hook-form';
+
+import React, { useState } from 'react';
+import { useForm, useFieldArray } from 'react-hook-form';
 import { useMutation } from 'react-query';
 import { useNavigate } from 'react-router-dom';
 import { PlusIcon, XIcon, UploadIcon } from 'lucide-react';
+import { useAuth } from '../contexts/AuthContext';
+import { ideaService } from '../services/api';
 
 interface IdeaSubmissionForm {
   title: string;
   description: string;
   expectedImpact: string;
   lineOfBusiness: string;
-  coApplicants: string[];
+  coApplicants: { name: string; email: string }[];
+  attachments: File[];
+  submittedBy: string;
 }
 
 function IdeaSubmission() {
   const navigate = useNavigate();
-  const [attachments, setAttachments] = React.useState<File[]>([]);
+  const { user } = useAuth(); // Get the logged-in user info
+  const [attachments, setAttachments] = useState<File[]>([]);
+  const [error, setError] = useState(''); // Error for exceeding co-applicant limit
   const {
     register,
     handleSubmit,
     formState: { errors },
-    watch,
-  } = useForm<IdeaSubmissionForm>();
+    control,
+  } = useForm<IdeaSubmissionForm>({
+    defaultValues: {
+      coApplicants: [{ name: '', email: '' }],
+    },
+  });
+
+  const { fields, append, remove } = useFieldArray({
+    control,
+    name: 'coApplicants',
+  });
 
   const submitMutation = useMutation(
-    async (data: IdeaSubmissionForm & { attachments: File[] }) => {
+    async (data: IdeaSubmissionForm) => {
       const formData = new FormData();
       Object.entries(data).forEach(([key, value]) => {
         if (key === 'coApplicants') {
-          formData.append(key, JSON.stringify(value));
-        } else if (key !== 'attachments') {
-          formData.append(key, value);
+          formData.append(key, JSON.stringify(value)); // Send co-applicants as JSON
+        } else if (key === 'attachments') {
+          data.attachments.forEach((file) => {
+            formData.append('attachments', file);
+          });
+        } else {
+          formData.append(key, value as string);
         }
       });
-      
-      data.attachments.forEach((file) => {
-        formData.append('attachments', file);
-      });
 
-      const response = await fetch('/api/ideas', {
-        method: 'POST',
-        body: data,
-      });
-
-      if (!response.ok) throw new Error('Failed to submit idea');
-      return response.json();
+      return await ideaService.create(formData);
     },
     {
       onSuccess: () => {
@@ -61,8 +71,28 @@ function IdeaSubmission() {
     setAttachments((prev) => prev.filter((_, i) => i !== index));
   };
 
-  const onSubmit = (data: IdeaSubmissionForm) => {
-    submitMutation.mutate({ ...data, attachments });
+  const onSubmit = (data: Omit<IdeaSubmissionForm, 'submittedBy'>) => {
+    if (!user || !user.user.id) {
+      console.error('User not authenticated');
+      return;
+    }
+
+    const submissionData: IdeaSubmissionForm = {
+      ...data,
+      attachments,
+      submittedBy: user.id,
+    };
+
+    submitMutation.mutate(submissionData);
+  };
+
+  const handleAddCoApplicant = () => {
+    if (fields.length >= 5) {
+      setError('You can add up to 5 co-applicants only.');
+      return;
+    }
+    setError(''); // Clear previous error if any
+    append({ name: '', email: '' });
   };
 
   return (
@@ -70,6 +100,7 @@ function IdeaSubmission() {
       <h1 className="text-3xl font-bold text-gray-900 mb-8">Submit New Idea</h1>
 
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+        {/* Title */}
         <div>
           <label className="block text-sm font-medium text-gray-700">Title</label>
           <input
@@ -77,11 +108,10 @@ function IdeaSubmission() {
             {...register('title', { required: 'Title is required' })}
             className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
           />
-          {errors.title && (
-            <p className="mt-1 text-sm text-red-600">{errors.title.message}</p>
-          )}
+          {errors.title && <p className="mt-1 text-sm text-red-600">{errors.title.message}</p>}
         </div>
 
+        {/* Description */}
         <div>
           <label className="block text-sm font-medium text-gray-700">Description</label>
           <textarea
@@ -94,6 +124,7 @@ function IdeaSubmission() {
           )}
         </div>
 
+        {/* Expected Impact */}
         <div>
           <label className="block text-sm font-medium text-gray-700">Expected Impact</label>
           <textarea
@@ -106,6 +137,7 @@ function IdeaSubmission() {
           )}
         </div>
 
+        {/* Line of Business */}
         <div>
           <label className="block text-sm font-medium text-gray-700">Line of Business</label>
           <select
@@ -123,6 +155,44 @@ function IdeaSubmission() {
           )}
         </div>
 
+        {/* Co-Applicants */}
+        <div>
+          <label className="block text-sm font-medium text-gray-700">Co-Applicants</label>
+          {fields.map((field, index) => (
+            <div key={field.id} className="flex space-x-4 mt-2">
+              <input
+                type="text"
+                {...register(`coApplicants.${index}.name` as const)}
+                placeholder="Name"
+                className="flex-1 rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+              />
+              <input
+                type="email"
+                {...register(`coApplicants.${index}.email` as const)}
+                placeholder="Email"
+                className="flex-1 rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+              />
+              <button
+                type="button"
+                onClick={() => remove(index)}
+                className="text-red-500 hover:text-red-700"
+              >
+                <XIcon className="h-5 w-5" />
+              </button>
+            </div>
+          ))}
+          <button
+            type="button"
+            onClick={handleAddCoApplicant}
+            className="mt-2 flex items-center text-indigo-600 hover:text-indigo-800"
+          >
+            <PlusIcon className="h-5 w-5 mr-1" />
+            Add Co-Applicant
+          </button>
+          {error && <p className="mt-1 text-sm text-red-600">{error}</p>}
+        </div>
+
+        {/* Attachments */}
         <div>
           <label className="block text-sm font-medium text-gray-700">Attachments</label>
           <div className="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-gray-300 border-dashed rounded-md">
@@ -164,6 +234,7 @@ function IdeaSubmission() {
           )}
         </div>
 
+        {/* Submit Button */}
         <div className="flex justify-end space-x-4">
           <button
             type="button"
@@ -175,8 +246,6 @@ function IdeaSubmission() {
           <button
             type="submit"
             disabled={submitMutation.isLoading}
-            // add functionality to save the idea in the DB
-
             className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50"
           >
             {submitMutation.isLoading ? 'Submitting...' : 'Submit Idea'}

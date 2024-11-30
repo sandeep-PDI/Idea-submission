@@ -6,6 +6,7 @@ interface AuthContextType {
   user: User | null;
   login: (email: string, password: string) => Promise<void>;
   logout: () => void;
+  register: (email: string, password: string, name: string, department : string, lineofbusiness: string) => Promise<void>;
   isAuthenticated: boolean;
   isLoading: boolean;
 }
@@ -50,6 +51,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
+
+  const register = async (email: string, password: string, name: string, department: string, lineofbusiness: string) => {
+    try {
+      const userData = await auth.register(email, password, name, department, lineofbusiness); // Call the backend register API
+      setUser(userData); // Automatically log the user in after registration
+      localStorage.setItem('user', JSON.stringify(userData));
+    } catch (error) {
+      console.error('Registration failed:', error);
+      throw new Error('Failed to register. Please try again.');
+    }
+  };
+
   const logout = () => {
     setUser(null);
     localStorage.removeItem('user');
@@ -59,6 +72,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     user,
     login,
     logout,
+    register,
     isAuthenticated: !!user,
     isLoading
   };

@@ -2,8 +2,9 @@ import React from 'react';
 import { useForm } from 'react-hook-form';
 import { useMutation } from 'react-query';
 import { XIcon } from 'lucide-react';
-
+import { ideaService } from '../services/api'
 interface ReviewModalProps {
+ 
   ideaId: string;
   onClose: () => void;
   onSubmit: () => void;
@@ -24,13 +25,16 @@ function ReviewModal({ ideaId, onClose, onSubmit }: ReviewModalProps) {
 
   const submitReviewMutation = useMutation(
     async (data: ReviewForm) => {
-      const response = await fetch(`/api/ideas/${ideaId}/reviews`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data),
-      });
-      if (!response.ok) throw new Error('Failed to submit review');
-      return response.json();
+      // const response = await fetch(`/api/ideas/${ideaId}/reviews`, {
+      //   method: 'POST',
+      //   headers: { 'Content-Type': 'application/json' },
+      //   body: JSON.stringify(data),
+      // });
+      // if (!response.ok) throw new Error('Failed to submit review');
+      // return response.json();
+      const response = await ideaService.addReview(ideaId, data);
+      if (!response) throw new Error('Failed to submit review');
+      return response;
     },
     {
       onSuccess: () => {

@@ -3,56 +3,63 @@ generator client {
 }
 
 datasource db {
-  provider = "sqlite"
-  url      = "file:./dev.db"
+  provider = "postgresql"
+  url      = "postgresql://newuser:newpassword@localhost:5432/ideasubmission"
 }
 
 model User {
-  id             String   @id @default(uuid())
-  email          String   @unique
-  name           String
-  role           String   // APPLICANT, REVIEWER, ADMIN
-  department     String
-  lineOfBusiness String
-  ideas          Idea[]   @relation("SubmittedIdeas")
-  reviews        Review[]
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
+  id             String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  email          String    @unique @db.VarChar(255)
+  name           String    @db.VarChar(255)
+  role           String    @db.VarChar(50)
+  department     String    @db.VarChar(255)
+  lineofbusiness String    @db.VarChar(255)
+  createdat      DateTime? @default(now()) @db.Timestamp(6)
+  updatedat      DateTime? @default(now()) @db.Timestamp(6)
+  Idea           Idea[]
+  Review         Review[]
 }
 
 model Idea {
-  id             String       @id @default(uuid())
-  title          String
+  id             String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  title          String        @db.VarChar(255)
   description    String
-  expectedImpact String
-  status         String       // DRAFT, SUBMITTED, FLR, SLR, PF, PATENTED, REJECTED
-  submittedBy    String
-  submitter      User         @relation("SubmittedIdeas", fields: [submittedBy], references: [id])
-  coApplicants   String[]
-  lineOfBusiness String
-  attachments    Attachment[]
-  reviews        Review[]
-  createdAt      DateTime     @default(now())
-  updatedAt      DateTime     @updatedAt
+  expectedimpact String
+  status         String        @db.VarChar(50)
+  submittedby    String?       @db.Uuid
+  lineofbusiness String        @db.VarChar(255)
+  createdat      DateTime?     @default(now()) @db.Timestamp(6)
+  updatedat      DateTime?     @default(now()) @db.Timestamp(6)
+  Attachment     Attachment[]
+  CoApplicant    CoApplicant[]
+  User           User?         @relation(fields: [submittedby], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  Review         Review[]
 }
 
 model Review {
-  id        String   @id @default(uuid())
-  ideaId    String
-  idea      Idea     @relation(fields: [ideaId], references: [id])
-  reviewerId String
-  reviewer  User     @relation(fields: [reviewerId], references: [id])
-  stage     String   // FLR, SLR, PF
-  status    String   // APPROVED, REJECTED, PENDING
-  comments  String
-  createdAt DateTime @default(now())
+  id         String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  ideaid     String?   @db.Uuid
+  reviewerid String?   @db.Uuid
+  stage      String    @db.VarChar(50)
+  status     String    @db.VarChar(50)
+  comments   String?
+  createdat  DateTime? @default(now()) @db.Timestamp(6)
+  Idea       Idea?     @relation(fields: [ideaid], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  User       User?     @relation(fields: [reviewerid], references: [id], onDelete: Cascade, onUpdate: NoAction)
 }
 
 model Attachment {
-  id        String   @id @default(uuid())
-  ideaId    String
-  idea      Idea     @relation(fields: [ideaId], references: [id])
-  fileName  String
-  fileUrl   String
-  createdAt DateTime @default(now())
+  id        String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  ideaid    String?   @db.Uuid
+  filename  String    @db.VarChar(255)
+  fileurl   String    @db.VarChar(1024)
+  createdat DateTime? @default(now()) @db.Timestamp(6)
+  Idea      Idea?     @relation(fields: [ideaid], references: [id], onDelete: Cascade, onUpdate: NoAction)
+}
+
+model CoApplicant {
+  id              String  @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  ideaid          String? @db.Uuid
+  coapplicantname String  @db.VarChar(255)
+  Idea            Idea?   @relation(fields: [ideaid], references: [id], onDelete: Cascade, onUpdate: NoAction)
 }

@@ -37,17 +37,17 @@ function IdeaCard({ idea, showActions = true }: IdeaCardProps) {
           <span>{idea.submittedBy}</span>
         </div>
         <div>
-          {idea.coApplicants.length > 0 && `+${idea.coApplicants.length} co-applicants`}
+          {idea.coApplicants && idea.coApplicants.length > 0 && `+${idea.coApplicants.length} co-applicants`}
         </div>
         <div>
-          {format(new Date(idea.createdAt), 'MMM d, yyyy')}
-        </div>
+        {idea.createdAt ? format(new Date(idea.createdAt), 'MMM d, yyyy') : 'Invalid date'}
+      </div>
       </div>
 
       {showActions && (
         <div className="flex justify-between items-center mt-4 pt-4 border-t border-gray-100">
           <div className="flex space-x-2">
-            {idea.attachments.length > 0 && (
+            {idea.attachments && idea.attachments.length > 0 && (
               <span className="text-sm text-gray-500">
                 {idea.attachments.length} attachment{idea.attachments.length !== 1 ? 's' : ''}
               </span>

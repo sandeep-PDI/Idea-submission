@@ -4,7 +4,7 @@ import { SearchIcon } from 'lucide-react';
 import type { Idea } from '../types';
 import IdeaCard from '../components/IdeaCard';
 import FilterPanel from '../components/FilterPanel';
-
+import { ideaService } from '../services/api';
 function ReviewDashboard() {
   const [searchTerm, setSearchTerm] = React.useState('');
   const [filters, setFilters] = React.useState({
@@ -14,9 +14,9 @@ function ReviewDashboard() {
   });
 
   const { data: ideas, isLoading } = useQuery<Idea[]>('ideasForReview', async () => {
-    const response = await fetch('/api/ideas/review');
-    if (!response.ok) throw new Error('Failed to fetch ideas for review');
-    return response.json();
+    const response = await ideaService.lineOfBusinessIdeas();
+    if (!response) throw new Error('Failed to fetch ideas for review');
+    return response;
   });
 
   const filteredIdeas = React.useMemo(() => {

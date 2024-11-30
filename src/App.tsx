@@ -31,7 +31,7 @@ function AppRoutes() {
         <Route
           path="dashboard"
           element={
-            <ProtectedRoute>
+            <ProtectedRoute allowedRoles={['ADMIN','APPLICANT','REVIEWER']}>
               <Dashboard />
             </ProtectedRoute>
           }
@@ -39,7 +39,7 @@ function AppRoutes() {
         <Route
           path="submit"
           element={
-            <ProtectedRoute>
+            <ProtectedRoute allowedRoles={['ADMIN','APPLICANT','REVIEWER']}>
               <IdeaSubmission />
             </ProtectedRoute>
           }
@@ -47,7 +47,7 @@ function AppRoutes() {
         <Route
           path="ideas/:id"
           element={
-            <ProtectedRoute>
+            <ProtectedRoute allowedRoles={['ADMIN','APPLICANT','REVIEWER']}>
               <IdeaDetails />
             </ProtectedRoute>
           }

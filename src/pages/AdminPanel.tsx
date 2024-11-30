@@ -2,26 +2,22 @@ import React from 'react';
 import { useQuery, useMutation, useQueryClient } from 'react-query';
 import { UserCogIcon, TrashIcon, CheckIcon, XIcon } from 'lucide-react';
 import type { User } from '../types';
-
+import { userService } from '../services/api';
 function AdminPanel() {
   const queryClient = useQueryClient();
   const [selectedRole, setSelectedRole] = React.useState<string>('');
 
   const { data: users, isLoading } = useQuery<User[]>('users', async () => {
-    const response = await fetch('/api/users');
-    if (!response.ok) throw new Error('Failed to fetch users');
-    return response.json();
+    const response = await userService.getAll();
+    if (!response) throw new Error('Failed to fetch users');
+    return response;
   });
 
   const updateUserMutation = useMutation(
     async ({ userId, role }: { userId: string; role: string }) => {
-      const response = await fetch(`/api/users/${userId}/role`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ role }),
-      });
-      if (!response.ok) throw new Error('Failed to update user role');
-      return response.json();
+      const response = await userService.updateRole(userId, role);
+      if (!response) throw new Error('Failed to update user role');
+      return response;
     },
     {
       onSuccess: () => {
@@ -32,10 +28,8 @@ function AdminPanel() {
 
   const deleteUserMutation = useMutation(
     async (userId: string) => {
-      const response = await fetch(`/api/users/${userId}`, {
-        method: 'DELETE',
-      });
-      if (!response.ok) throw new Error('Failed to delete user');
+      const response = await userService.delete(userId);
+      if (!response) throw new Error('Failed to delete user');
     },
     {
       onSuccess: () => {
@@ -117,7 +111,7 @@ function AdminPanel() {
                     {user.department}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    {user.lineOfBusiness}
+                    {user.lineofbusiness}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <select
