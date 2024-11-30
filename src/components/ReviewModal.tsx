@@ -16,34 +16,36 @@ interface ReviewForm {
   comments: string;
 }
 
-function ReviewModal({ ideaId, onClose, onSubmit }: ReviewModalProps) {
+export function ReviewModal({ ideaId, onClose, onSubmit }: ReviewModalProps) {
   const {
     register,
     handleSubmit,
     formState: { errors },
   } = useForm<ReviewForm>();
 
+  const [serverError, setServerError] = React.useState<string | null>(null);
+
   const submitReviewMutation = useMutation(
     async (data: ReviewForm) => {
-      // const response = await fetch(`/api/ideas/${ideaId}/reviews`, {
-      //   method: 'POST',
-      //   headers: { 'Content-Type': 'application/json' },
-      //   body: JSON.stringify(data),
-      // });
-      // if (!response.ok) throw new Error('Failed to submit review');
-      // return response.json();
       const response = await ideaService.addReview(ideaId, data);
       if (!response) throw new Error('Failed to submit review');
       return response;
     },
     {
       onSuccess: () => {
-        onSubmit();
+        setServerError(null); // Clear server errors
+        onSubmit(); // Call parent refresh
+      },
+      onError: (error: any) => {
+        const errorMessage =
+          error?.response?.data?.message || 'An error occurred while submitting the review.';
+        setServerError(errorMessage);
       },
     }
   );
 
   const onSubmitForm = (data: ReviewForm) => {
+    setServerError(null);
     submitReviewMutation.mutate(data);
   };
 
@@ -64,6 +66,13 @@ function ReviewModal({ ideaId, onClose, onSubmit }: ReviewModalProps) {
 
           <div className="p-6">
             <h2 className="text-2xl font-bold text-gray-900 mb-6">Submit Review</h2>
+
+            {/* Show server errors */}
+            {serverError && (
+              <div className="mb-4 text-red-600 bg-red-100 p-3 rounded">
+                {serverError}
+              </div>
+            )}
 
             <form onSubmit={handleSubmit(onSubmitForm)} className="space-y-6">
               <div>
@@ -138,5 +147,3 @@ function ReviewModal({ ideaId, onClose, onSubmit }: ReviewModalProps) {
     </div>
   );
 }
-
-export default ReviewModal;

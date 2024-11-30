@@ -4,7 +4,7 @@ import { useQuery, useMutation, useQueryClient } from 'react-query';
 import { format } from 'date-fns';
 import { FileIcon, UserIcon, MessageSquareIcon, CheckCircleIcon, XCircleIcon } from 'lucide-react';
 import type { Idea, Review } from '../types';
-import ReviewModal from '../components/ReviewModal';
+import { ReviewModal } from '../components/ReviewModal';
 import {ideaService} from '../services/api';
 import { useAuth } from'../contexts/AuthContext';
 
@@ -61,6 +61,24 @@ function IdeaDetails() {
       </div>
     );
   }
+  const canAddReview = () => {
+    if (!idea.Review || idea.Review.length === 0) {
+      return true; // Allow FLR if no reviews exist
+    }
+  
+    const lastReview = idea.Review[idea.Review.length - 1];
+    if (lastReview.status === 'REJECTED') {
+      return false; // Block if the last review was rejected
+    }
+  
+    if (lastReview.stage === 'FLR') {
+      return lastReview.status === 'APPROVED' && user.user.id !== idea.User.id;
+    } else if (lastReview.stage === 'SLR') {
+      return lastReview.status === 'APPROVED' && user.user.id !== idea.User.id;
+    }
+  
+    return false;
+  };
 
   return (
     <div className="max-w-4xl mx-auto">
@@ -160,8 +178,8 @@ function IdeaDetails() {
                 </div>
               ) : (
                 <p className="text-gray-500">No reviews yet.</p>
-              )}
-              { user && user.user.id !== idea.User.id ? (
+              )}  
+              { user.user.id !== idea.User.id && canAddReview() ? (
               <button 
                 onClick={() => setIsReviewModalOpen(true)}
                 className="mt-4 inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"

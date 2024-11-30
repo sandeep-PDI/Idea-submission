@@ -8,6 +8,11 @@ import type { Idea } from '../types';
 
 function Dashboard() {
   const [searchTerm, setSearchTerm] = React.useState('');
+  const [filters, setFilters] = React.useState({
+    status: [],
+    lineOfBusiness: [],
+    dateRange: 'all',
+  });
   const { data: ideas = [], isLoading, error } = useQuery<Idea[]>(
     'ideas',
     ideaService.getAll,
@@ -19,13 +24,26 @@ function Dashboard() {
 
   const filteredIdeas = React.useMemo(() => {
     if (!ideas) return [];
-    return ideas
-    // return ideas.filter(
-    //   (idea) =>
-    //     // idea.title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    //     // idea.description?.toLowerCase().includes(searchTerm.toLowerCase())
-    // );
-  }, [ideas, searchTerm]);
+
+    return ideas.filter((idea) => {
+      const matchesSearch =
+        searchTerm === '' ||
+        idea.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        idea.description.toLowerCase().includes(searchTerm.toLowerCase());
+
+      const matchesStatus =
+        filters.status.length === 0 || filters.status.includes(idea.status);
+
+      const matchesLoB =
+        filters.lineOfBusiness.length === 0 ||
+        filters.lineOfBusiness.includes(idea.lineOfBusiness);
+
+      // Date filtering logic can be expanded based on requirements
+      const matchesDate = true; // Placeholder
+
+      return matchesSearch && matchesStatus && matchesLoB && matchesDate;
+    });
+  }, [ideas, searchTerm, filters]);
 
   if (error) {
     return (

@@ -220,11 +220,33 @@ app.post('/api/ideas/:id/reviews', authenticateToken, asyncHandler(async (req, r
   const { stage, status, comments } = req.body;
   reviewerid = req.user.id;
 
-  const idea = await prisma.idea.findUnique({ where: { id: req.params.id } });
+  const idea = await prisma.idea.findUnique({ where: { id: req.params.id },
+    include: {
+      Review: true,
+    },
+   });
 
   if (!idea) {
     res.status(404).json({ message: 'Idea not found' });
     return;
+  }
+  // Get the most recent review
+  const lastReview = idea.Review.length > 0 ? idea.Review[idea.Review.length - 1] : null;
+
+  // Validate review flow
+  if (lastReview) {
+    if (lastReview.status === 'REJECTED') {
+      return res.status(400).json({ message: 'Cannot submit review as the idea was rejected in a previous stage.' });
+    }
+
+    if (
+      (stage === 'SLR' && lastReview.stage !== 'FLR') ||
+      (stage === 'PT' && lastReview.stage !== 'SLR')
+    ) {
+      return res.status(400).json({ message: `Invalid review flow. The ${stage} review can only follow the appropriate previous stage.` });
+    }
+  } else if (stage !== 'FLR') {
+    return res.status(400).json({ message: 'The first review must be FLR.' });
   }
 
   const review = await prisma.review.create({

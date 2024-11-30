@@ -23,13 +23,22 @@ function IdeaCard({ idea, showActions = true }: IdeaCardProps) {
   return (
     <div className="bg-white rounded-lg shadow-md p-6 hover:shadow-lg transition-shadow">
       <div className="flex justify-between items-start mb-4">
-        <h3 className="text-xl font-semibold text-gray-900 flex-1">{idea.title}</h3>
+        {/* Ensure title doesn't overflow */}
+        <h3 className="truncate text-xl font-semibold text-gray-900 flex-1" title={idea.title}>
+          {idea.title}
+        </h3>
         <span className={`px-3 py-1 rounded-full text-sm font-medium ${statusColors[idea.status]}`}>
           {idea.status}
         </span>
       </div>
 
-      <p className="text-gray-600 mb-4 line-clamp-2">{idea.description}</p>
+      {/* Ensure description doesn't overflow */}
+      <p
+        className="line-clamp-2 text-gray-600 mb-4"
+        title={idea.description}
+      >
+        {idea.description}
+      </p>
 
       <div className="flex items-center space-x-4 text-sm text-gray-500 mb-4">
         <div className="flex items-center">
@@ -40,8 +49,8 @@ function IdeaCard({ idea, showActions = true }: IdeaCardProps) {
           {idea.coApplicants && idea.coApplicants.length > 0 && `+${idea.coApplicants.length} co-applicants`}
         </div>
         <div>
-        {idea.createdAt ? format(new Date(idea.createdAt), 'MMM d, yyyy') : 'Invalid date'}
-      </div>
+          {idea.createdat ? format(new Date(idea.createdat), 'MMM d, yyyy') : 'Invalid date'}
+        </div>
       </div>
 
       {showActions && (
