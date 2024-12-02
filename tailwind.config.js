@@ -2,7 +2,11 @@
 export default {
   content: ['./index.html', './src/**/*.{js,ts,jsx,tsx}'],
   theme: {
-    extend: {},
+    extend: {
+      colors: {
+      customNav: '#07003D', // Add your custom color here
+      },
+    },
   },
   plugins: [],
 };
